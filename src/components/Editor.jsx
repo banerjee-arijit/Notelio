@@ -1,28 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { 
-  ArrowLeft, 
-  Sun, 
-  Moon, 
-  Type, 
-  Palette, 
-  Bold as BoldIcon, 
-  Italic as ItalicIcon, 
-  Underline as UnderlineIcon, 
-  Strikethrough as StrikethroughIcon, 
-  List as ListIcon, 
-  ListOrdered, 
-  CheckSquare, 
-  Highlighter, 
-  Heading1, 
-  Heading2, 
-  Heading3, 
-  Code,
-  ChevronDown,
-  Quote,
-  Search,
-  X,
-  ChevronUp
-} from 'lucide-react';
+import EditorHeader from './editor/EditorHeader';
+import InNoteSearchBar from './editor/InNoteSearchBar';
+import SelectionToolbar from './editor/SelectionToolbar';
+import EditorFooter from './editor/EditorFooter';
 
 export default function Editor({
   title,
@@ -38,8 +18,6 @@ export default function Editor({
 
   // Selection Floating Menu State
   const [selectionMenu, setSelectionMenu] = useState({ visible: false, x: 0, y: 0, currentStyle: 'Text' });
-  const [showStyleDropdown, setShowStyleDropdown] = useState(false);
-  const [showColorDropdown, setShowColorDropdown] = useState(false);
 
   // In-Note Search Bar State
   const [showSearch, setShowSearch] = useState(false);
@@ -84,7 +62,7 @@ export default function Editor({
     const handleGlobalKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        setShowSearch(true);
+        setShowSearch((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -163,8 +141,6 @@ export default function Editor({
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed || !selection.toString().trim()) {
         setSelectionMenu((prev) => ({ ...prev, visible: false }));
-        setShowStyleDropdown(false);
-        setShowColorDropdown(false);
         return;
       }
 
@@ -242,7 +218,7 @@ export default function Editor({
     }
   };
 
-  // Calculate statistics (strip HTML tags)
+  // Calculate statistics
   const plainText = content ? content.replace(/<[^>]+>/g, '') : '';
   const wordCount = plainText ? plainText.trim().split(/\s+/).filter(Boolean).length : 0;
   const charCount = plainText ? plainText.length : 0;
@@ -322,79 +298,33 @@ export default function Editor({
         break;
     }
 
-    setShowStyleDropdown(false);
-    setShowColorDropdown(false);
     handleContentInput();
   };
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] flex flex-col animate-note-open relative">
       {/* Top Navigation Control */}
-      <div className="px-6 sm:px-12 md:px-20 lg:px-32 py-6 flex items-center justify-between max-w-4xl mx-auto w-full">
-        <button
-          onClick={onBackToGrid}
-          className="flex items-center gap-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors active:scale-95 duration-150"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Notebooks</span>
-        </button>
+      <EditorHeader
+        onBackToGrid={onBackToGrid}
+        showSearch={showSearch}
+        onToggleSearch={() => setShowSearch(!showSearch)}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+      />
 
-        <div className="flex items-center gap-2">
-          {/* Search Button */}
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            title="Search inside notebook (Ctrl+F)"
-            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 duration-150 flex items-center gap-1 text-xs"
-          >
-            <Search className="w-4 h-4" />
-          </button>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={onToggleTheme}
-            title="Toggle Theme"
-            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 duration-150"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-slate-700" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* In-Note Search Floating Bar */}
+      {/* In-Note Search Bar */}
       {showSearch && (
-        <div className="max-w-4xl mx-auto w-full px-6 sm:px-12 md:px-20 lg:px-32 mb-4 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-2xl shadow-lg">
-            <Search className="w-4 h-4 text-[var(--text-muted)] ms-2 shrink-0" />
-            <input
-              type="text"
-              autoFocus
-              placeholder="Find text inside this note..."
-              value={inNoteSearch}
-              onChange={(e) => handleInNoteSearchChange(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
-            />
-            {inNoteSearch && (
-              <span className="text-[11px] font-medium text-[var(--text-muted)] me-2">
-                {matchCount} {matchCount === 1 ? 'match' : 'matches'}
-              </span>
-            )}
-            <button
-              onClick={closeSearch}
-              className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+        <InNoteSearchBar
+          query={inNoteSearch}
+          matchCount={matchCount}
+          onChangeQuery={handleInNoteSearchChange}
+          onClose={closeSearch}
+        />
       )}
 
       {/* Editor Content Canvas */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-6 sm:px-12 md:px-20 lg:px-32 py-4 flex flex-col" onClick={handleCanvasClick}>
-        {/* Multi-line Auto-wrapping Notebook Title */}
+        {/* Notebook Title Textarea */}
         <textarea
           ref={titleRef}
           rows={1}
@@ -422,180 +352,18 @@ export default function Editor({
       </div>
 
       {/* AUTOMATIC FLOATING SELECTION TOOLBAR */}
-      {selectionMenu.visible && (
-        <div
-          style={{ left: `${selectionMenu.x}px`, top: `${selectionMenu.y}px` }}
-          className="fixed z-50 flex items-center gap-0.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl p-1 text-xs text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 backdrop-blur-none"
-        >
-          {/* Style Dropdown Trigger */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowStyleDropdown(!showStyleDropdown);
-                setShowColorDropdown(false);
-              }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] font-medium transition-colors"
-            >
-              <Type className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-              <span>{selectionMenu.currentStyle}</span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
-            </button>
+      <SelectionToolbar
+        selectionMenu={selectionMenu}
+        colorPalette={colorPalette}
+        onApplyFormat={applyDirectFormat}
+      />
 
-            {/* Style Selection Popover */}
-            {showStyleDropdown && (
-              <div className="absolute left-0 top-9 z-50 w-52 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl p-1 space-y-0.5 animate-in fade-in duration-100">
-                <button
-                  onClick={() => applyDirectFormat('paragraph', null, 'Text')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Type className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Text</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('h1', null, 'Heading 1')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Heading1 className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Heading 1 (Selection)</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('h2', null, 'Heading 2')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Heading2 className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Heading 2 (20px)</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('h3', null, 'Heading 3')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Heading3 className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Heading 3 (18px)</span>
-                </button>
-                <div className="my-1 border-t border-[var(--border-color)]/60" />
-                <button
-                  onClick={() => applyDirectFormat('bullet')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <ListIcon className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Bulleted list</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('number')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <ListOrdered className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Numbered list</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('checklist')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <CheckSquare className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>To-do list</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('quote')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Quote className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Quote</span>
-                </button>
-                <button
-                  onClick={() => applyDirectFormat('code')}
-                  className="w-full text-left px-3 py-2 text-xs font-medium hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-2.5 transition-colors"
-                >
-                  <Code className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Code block</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="w-px h-4 bg-[var(--border-color)]/60 mx-1" />
-
-          {/* Color Palette Trigger */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowColorDropdown(!showColorDropdown);
-                setShowStyleDropdown(false);
-              }}
-              className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1"
-              title="Color Palette"
-            >
-              <Palette className="w-3.5 h-3.5" />
-              <ChevronDown className="w-2.5 h-2.5 opacity-60" />
-            </button>
-
-            {/* Colors Expanded Grid Popover */}
-            {showColorDropdown && (
-              <div className="absolute left-0 top-9 z-50 grid grid-cols-7 gap-1.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl p-2 w-52 animate-in fade-in duration-100">
-                {colorPalette.map((item) => (
-                  <button
-                    key={item.name}
-                    onClick={() => applyDirectFormat('foreColor', item.color)}
-                    style={{ backgroundColor: item.color }}
-                    className="w-5 h-5 rounded-full hover:scale-110 active:scale-95 transition-transform shadow-xs border border-black/10"
-                    title={item.name}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Bold */}
-          <button
-            onClick={() => applyDirectFormat('bold')}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Bold"
-          >
-            <BoldIcon className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Italic */}
-          <button
-            onClick={() => applyDirectFormat('italic')}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Italic"
-          >
-            <ItalicIcon className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Underline */}
-          <button
-            onClick={() => applyDirectFormat('underline')}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Underline"
-          >
-            <UnderlineIcon className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Strikethrough */}
-          <button
-            onClick={() => applyDirectFormat('strikethrough')}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            title="Strikethrough"
-          >
-            <StrikethroughIcon className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Highlight */}
-          <button
-            onClick={() => applyDirectFormat('highlight', '#fef08a')}
-            className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-amber-500 hover:text-amber-400 transition-colors"
-            title="Highlight"
-          >
-            <Highlighter className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Ultra Minimal Footer */}
-      <div className="px-6 sm:px-12 md:px-20 lg:px-32 py-3 max-w-4xl mx-auto w-full flex items-center justify-between text-[11px] text-[var(--text-muted)] opacity-60">
-        <span>{wordCount} words &bull; {charCount} characters</span>
-        <span>~{readingTime} min read</span>
-      </div>
+      {/* Footer */}
+      <EditorFooter
+        wordCount={wordCount}
+        charCount={charCount}
+        readingTime={readingTime}
+      />
     </div>
   );
 }
