@@ -44,7 +44,7 @@ export async function fetchNotes(search = '', tag = '') {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using Browser Storage fallback:', err.message);
+    console.warn('Backend API unavailable, using LocalStorage fallback:', err.message);
     let notes = getLocalNotes();
     if (search) {
       const q = search.toLowerCase();
@@ -63,7 +63,7 @@ export async function fetchNoteById(id) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using Browser Storage fallback for fetchNoteById');
+    console.warn('Backend API unavailable, using LocalStorage fallback for fetchNoteById');
     const notes = getLocalNotes();
     const note = notes.find(n => n.id === id);
     if (!note) throw new Error('Note not found');
@@ -81,7 +81,7 @@ export async function createNote(noteData = {}) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using Browser Storage fallback for createNote');
+    console.warn('Backend API unavailable, using LocalStorage fallback for createNote');
     const notes = getLocalNotes();
     const newNote = {
       id: noteData.id || 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -108,7 +108,7 @@ export async function updateNote(id, noteData) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using Browser Storage fallback for updateNote');
+    console.warn('Backend API unavailable, using LocalStorage fallback for updateNote');
     let notes = getLocalNotes();
     const index = notes.findIndex(n => n.id === id);
     if (index !== -1) {
@@ -132,7 +132,7 @@ export async function deleteNote(id) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using Browser Storage fallback for deleteNote');
+    console.warn('Backend API unavailable, using LocalStorage fallback for deleteNote');
     let notes = getLocalNotes();
     notes = notes.filter(n => n.id !== id);
     saveLocalNotes(notes);

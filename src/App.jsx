@@ -38,7 +38,7 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Load initial notes & health check
+  // Load initial notes
   useEffect(() => {
     async function loadData() {
       try {
@@ -46,7 +46,7 @@ export default function App() {
         const fetched = await fetchNotes();
         setNotes(fetched);
       } catch (err) {
-        console.error('Failed to initialize app from Postgres backend:', err);
+        console.error('Failed to initialize app:', err);
       }
     }
     loadData();
@@ -81,7 +81,7 @@ export default function App() {
     }
   };
 
-  // Trigger debounced auto-save to Postgres
+  // Trigger debounced auto-save
   const triggerAutoSave = (updatedNote) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))

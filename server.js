@@ -49,7 +49,7 @@ async function initDB() {
     }
   }
 
-  // Create notes table
+  // Create Notes Table
   await dbClient.query(`
     CREATE TABLE IF NOT EXISTS notes (
       id VARCHAR(64) PRIMARY KEY,
@@ -68,7 +68,7 @@ async function initDB() {
     const welcomeNote = {
       id: 'welcome-note-1',
       title: 'Welcome to Notelio',
-      content: `Welcome to <b>Notelio</b>! A minimalist, distraction-free notebook app backed by PostgreSQL.<br><br>Features:<br><ul><li>Card Grid home view</li><li>Direct visual rich formatting</li><li>Notion-style automatic selection toolbar</li><li>PostgreSQL background auto-save</li></ul>`,
+      content: `Welcome to <b>Notelio</b>! A minimalist, distraction-free notebook app.<br><br>Features:<br><ul><li>Card Grid home view</li><li>Direct visual rich formatting</li><li>Notion-style automatic selection toolbar</li><li>PostgreSQL storage</li></ul>`,
       pinned: true,
       tags: JSON.stringify(['guide', 'welcome']),
     };
@@ -77,7 +77,6 @@ async function initDB() {
       `INSERT INTO notes (id, title, content, pinned, tags, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
       [welcomeNote.id, welcomeNote.title, welcomeNote.content, welcomeNote.pinned, welcomeNote.tags]
     );
-    console.log('Seeded default notes into PostgreSQL.');
   }
 }
 
