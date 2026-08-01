@@ -1,5 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const LOCAL_STORAGE_KEY = 'notelio_notes';
+const LOCAL_STORAGE_KEY = 'notelio_notes_v3';
 
 // Helper: Get local storage notes
 function getLocalNotes() {
@@ -10,7 +10,7 @@ function getLocalNotes() {
         {
           id: 'welcome-note-1',
           title: 'Welcome to Notelio',
-          content: `Welcome to <b>Notelio</b>! A minimalist, distraction-free notebook app.<br><br>Features:<br><ul><li>Card Grid home view</li><li>Direct visual rich formatting</li><li>Notion-style automatic selection toolbar</li><li>Auto-save persistence</li></ul>`,
+          content: `Capture ideas, organize thoughts, and keep everything in one place.<br><br>Whether you're taking class notes, planning a project, or saving quick thoughts, Notelio helps you stay focused with a simple and distraction-free writing experience.<br><br><b>What you can do</b><br>• Create and organize notebooks<br>• Write with rich text formatting<br>• Search notes instantly<br>• Keep your ideas structured and accessible<br>• Focus on writing without clutter<br><br><b>Getting Started</b><br>1. Create your first notebook<br>2. Add a note and start writing<br>3. Organize notes into notebooks<br>4. Customize your workspace<br><br>Your next great idea starts here. ✨`,
           pinned: true,
           tags: ['guide', 'welcome'],
           created_at: new Date().toISOString(),
@@ -44,7 +44,6 @@ export async function fetchNotes(search = '', tag = '') {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using LocalStorage fallback:', err.message);
     let notes = getLocalNotes();
     if (search) {
       const q = search.toLowerCase();
@@ -63,7 +62,6 @@ export async function fetchNoteById(id) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using LocalStorage fallback for fetchNoteById');
     const notes = getLocalNotes();
     const note = notes.find(n => n.id === id);
     if (!note) throw new Error('Note not found');
@@ -81,7 +79,6 @@ export async function createNote(noteData = {}) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using LocalStorage fallback for createNote');
     const notes = getLocalNotes();
     const newNote = {
       id: noteData.id || 'note_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -108,7 +105,6 @@ export async function updateNote(id, noteData) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using LocalStorage fallback for updateNote');
     let notes = getLocalNotes();
     const index = notes.findIndex(n => n.id === id);
     if (index !== -1) {
@@ -132,7 +128,6 @@ export async function deleteNote(id) {
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn('Backend API unavailable, using LocalStorage fallback for deleteNote');
     let notes = getLocalNotes();
     notes = notes.filter(n => n.id !== id);
     saveLocalNotes(notes);

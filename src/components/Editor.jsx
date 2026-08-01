@@ -18,7 +18,10 @@ import {
   Heading3, 
   Code,
   ChevronDown,
-  Quote
+  Quote,
+  Search,
+  X,
+  ChevronUp
 } from 'lucide-react';
 
 export default function Editor({
@@ -38,7 +41,12 @@ export default function Editor({
   const [showStyleDropdown, setShowStyleDropdown] = useState(false);
   const [showColorDropdown, setShowColorDropdown] = useState(false);
 
-  // Expanded Color Palette including Black & Soft Tones
+  // In-Note Search Bar State
+  const [showSearch, setShowSearch] = useState(false);
+  const [inNoteSearch, setInNoteSearch] = useState('');
+  const [matchCount, setMatchCount] = useState(0);
+
+  // Expanded 14 Colors Palette
   const colorPalette = [
     { name: 'Black', color: '#18181b' },
     { name: 'Charcoal', color: '#3f3f46' },
@@ -71,7 +79,85 @@ export default function Editor({
     }
   }, [title]);
 
-  // Handle selection changes (mouse release or key up)
+  // Handle Ctrl+F for In-Note Search
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
+
+  // Perform In-Note Search highlighting
+  const handleInNoteSearchChange = (query) => {
+    setInNoteSearch(query);
+    const editor = contentEditableRef.current;
+    if (!editor) return;
+
+    // Remove existing search highlights
+    const marks = editor.querySelectorAll('mark.search-highlight');
+    marks.forEach(mark => {
+      const parent = mark.parentNode;
+      parent.replaceChild(document.createTextNode(mark.textContent), mark);
+      parent.normalize();
+    });
+
+    if (!query.trim()) {
+      setMatchCount(0);
+      return;
+    }
+
+    // Highlight matches
+    let count = 0;
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null, false);
+    const nodesToReplace = [];
+
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (node.nodeValue && node.nodeValue.toLowerCase().includes(query.toLowerCase())) {
+        nodesToReplace.push(node);
+      }
+    }
+
+    nodesToReplace.forEach(node => {
+      const parent = node.parentNode;
+      if (!parent || parent.tagName === 'MARK') return;
+
+      const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      const parts = node.nodeValue.split(regex);
+      const fragment = document.createDocumentFragment();
+
+      parts.forEach(part => {
+        if (part.toLowerCase() === query.toLowerCase()) {
+          count++;
+          const mark = document.createElement('mark');
+          mark.className = 'search-highlight';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.color = '#0f172a';
+          mark.style.borderRadius = '0.2rem';
+          mark.style.padding = '0.1rem 0.25rem';
+          mark.textContent = part;
+          fragment.appendChild(mark);
+        } else {
+          fragment.appendChild(document.createTextNode(part));
+        }
+      });
+
+      parent.replaceChild(fragment, node);
+    });
+
+    setMatchCount(count);
+  };
+
+  const closeSearch = () => {
+    handleInNoteSearchChange('');
+    setShowSearch(false);
+  };
+
+  // Handle selection changes
   const handleSelectionCheck = () => {
     setTimeout(() => {
       const selection = window.getSelection();
@@ -82,17 +168,14 @@ export default function Editor({
         return;
       }
 
-      // Ensure selection is inside contentEditable
       if (contentEditableRef.current && contentEditableRef.current.contains(selection.anchorNode)) {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
-        // Calculate positioning above selection
         const menuWidth = 340;
         let posX = rect.left + rect.width / 2 - menuWidth / 2;
         let posY = rect.top - 58;
 
-        // Keep inside viewport bounds
         if (posX < 20) posX = 20;
         if (posX + menuWidth > window.innerWidth - 20) posX = window.innerWidth - menuWidth - 20;
         if (posY < 60) posY = rect.bottom + 10;
@@ -110,7 +193,6 @@ export default function Editor({
   // Handle innerHTML updates & automatic cleanup of empty code blocks
   const handleContentInput = () => {
     if (contentEditableRef.current) {
-      // Remove empty <pre> code blocks automatically
       const preBlocks = contentEditableRef.current.querySelectorAll('pre');
       preBlocks.forEach((pre) => {
         if (!pre.textContent.trim()) {
@@ -122,26 +204,23 @@ export default function Editor({
     }
   };
 
-  // Handle key navigation inside code blocks & container clicks
+  // Handle key navigation inside code blocks
   const handleKeyDown = (e) => {
     const selection = window.getSelection();
     if (!selection || !selection.anchorNode) return;
 
-    // Check if cursor is inside a <pre> block
     let node = selection.anchorNode;
     while (node && node !== contentEditableRef.current && node.tagName !== 'PRE') {
       node = node.parentNode;
     }
 
     if (node && node.tagName === 'PRE') {
-      // If pressing Enter without Shift or Shift+Enter, allow breaking out of code block
       if (e.key === 'Enter' && e.shiftKey) {
         e.preventDefault();
         const p = document.createElement('p');
         p.innerHTML = '<br>';
         node.parentNode.insertBefore(p, node.nextSibling);
         
-        // Move cursor to new paragraph
         const range = document.createRange();
         range.setStart(p, 0);
         range.collapse(true);
@@ -151,7 +230,6 @@ export default function Editor({
     }
   };
 
-  // Handle clicking outside code blocks in the editor canvas
   const handleCanvasClick = (e) => {
     if (e.target === contentEditableRef.current) {
       const editor = contentEditableRef.current;
@@ -261,18 +339,58 @@ export default function Editor({
           <span>Notebooks</span>
         </button>
 
-        <button
-          onClick={onToggleTheme}
-          title="Toggle Theme"
-          className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 duration-150"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Moon className="w-4 h-4 text-slate-700" />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Search Button */}
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            title="Search inside notebook (Ctrl+F)"
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 duration-150 flex items-center gap-1 text-xs"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={onToggleTheme}
+            title="Toggle Theme"
+            className="p-1.5 rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors active:scale-95 duration-150"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-700" />
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* In-Note Search Floating Bar */}
+      {showSearch && (
+        <div className="max-w-4xl mx-auto w-full px-6 sm:px-12 md:px-20 lg:px-32 mb-4 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-color)] p-2 rounded-2xl shadow-lg">
+            <Search className="w-4 h-4 text-[var(--text-muted)] ms-2 shrink-0" />
+            <input
+              type="text"
+              autoFocus
+              placeholder="Find text inside this note..."
+              value={inNoteSearch}
+              onChange={(e) => handleInNoteSearchChange(e.target.value)}
+              className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none"
+            />
+            {inNoteSearch && (
+              <span className="text-[11px] font-medium text-[var(--text-muted)] me-2">
+                {matchCount} {matchCount === 1 ? 'match' : 'matches'}
+              </span>
+            )}
+            <button
+              onClick={closeSearch}
+              className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Editor Content Canvas */}
       <div className="flex-1 max-w-4xl mx-auto w-full px-6 sm:px-12 md:px-20 lg:px-32 py-4 flex flex-col" onClick={handleCanvasClick}>
@@ -303,7 +421,7 @@ export default function Editor({
         />
       </div>
 
-      {/* AUTOMATIC FLOATING SELECTION TOOLBAR (Notion Style) */}
+      {/* AUTOMATIC FLOATING SELECTION TOOLBAR */}
       {selectionMenu.visible && (
         <div
           style={{ left: `${selectionMenu.x}px`, top: `${selectionMenu.y}px` }}
@@ -396,7 +514,7 @@ export default function Editor({
 
           <div className="w-px h-4 bg-[var(--border-color)]/60 mx-1" />
 
-          {/* Color Palette Trigger (Including Black) */}
+          {/* Color Palette Trigger */}
           <div className="relative">
             <button
               onClick={() => {
@@ -410,7 +528,7 @@ export default function Editor({
               <ChevronDown className="w-2.5 h-2.5 opacity-60" />
             </button>
 
-            {/* Colors Expanded Grid Popover (14 Colors including Black) */}
+            {/* Colors Expanded Grid Popover */}
             {showColorDropdown && (
               <div className="absolute left-0 top-9 z-50 grid grid-cols-7 gap-1.5 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl shadow-2xl p-2 w-52 animate-in fade-in duration-100">
                 {colorPalette.map((item) => (

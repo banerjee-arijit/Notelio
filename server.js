@@ -68,7 +68,7 @@ async function initDB() {
     const welcomeNote = {
       id: 'welcome-note-1',
       title: 'Welcome to Notelio',
-      content: `Welcome to <b>Notelio</b>! A minimalist, distraction-free notebook app.<br><br>Features:<br><ul><li>Card Grid home view</li><li>Direct visual rich formatting</li><li>Notion-style automatic selection toolbar</li><li>PostgreSQL storage</li></ul>`,
+      content: `Capture ideas, organize thoughts, and keep everything in one place.<br><br>Whether you're taking class notes, planning a project, or saving quick thoughts, Notelio helps you stay focused with a simple and distraction-free writing experience.<br><br><b>What you can do</b><br>• Create and organize notebooks<br>• Write with rich text formatting<br>• Search notes instantly<br>• Keep your ideas structured and accessible<br>• Focus on writing without clutter<br><br><b>Getting Started</b><br>1. Create your first notebook<br>2. Add a note and start writing<br>3. Organize notes into notebooks<br>4. Customize your workspace<br><br>Your next great idea starts here. ✨`,
       pinned: true,
       tags: JSON.stringify(['guide', 'welcome']),
     };
